@@ -26,6 +26,7 @@ interface NasabahData {
   transactionActivity: string;
 }
 
+
 export default function DetailCustomer() {
   const [nasabahData, setNasabahData] = useState<NasabahData>({
     cif: '',
