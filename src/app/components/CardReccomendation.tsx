@@ -15,7 +15,6 @@ const CardReccomendation: React.FC<CardReccomendationProps> = ({
   produk,
   maksimalPlafond,
   logo,
-  onLihatPersyaratan = () => {},
 }) => {
   // Tambahkan state untuk mengontrol popup
   const [showTnC, setShowTnC] = useState(false);

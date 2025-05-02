@@ -105,7 +105,7 @@ export default function DashboardMarketing() {
             </div>
             
             <div className="bg-white rounded-lg border p-4 shadow-sm overflow-x-auto">
-              <CustomerTable />
+              <CustomerTable tab="pipeline"/>
             </div>
           </div>
         </div>

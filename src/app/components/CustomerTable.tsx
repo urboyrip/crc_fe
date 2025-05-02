@@ -3,15 +3,36 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-const CustomerTable = () => {
-  const [activeTab, setActiveTab] = useState("pipeline");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+// Define interfaces for type safety
+interface Customer {
+  no: number;
+  cif: string;
+  noRek: string;
+  produk: string;
+  status: CustomerStatus;
+  nama: string;
+}
+
+interface CustomerTableProps {
+  tab: "pipeline" | "kelolaan";
+  event?: string;
+}
+
+// Define specific types for status and tabs
+type CustomerStatus = "New" | "Processing" | "Rejected" | "Contacted" | "Closed";
+type TabType = "pipeline" | "kelolaan";
+type RowsPerPageOption = 10 | 50 | 100 | number;
+
+const CustomerTable: React.FC<CustomerTableProps> = ({ tab, event }) => {
+  // State with proper typing
+  const [activeTab, setActiveTab] = useState<TabType>("pipeline");
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [statusFilter, setStatusFilter] = useState<string>("");
+  const [rowsPerPage, setRowsPerPage] = useState<RowsPerPageOption>(10);
   const router = useRouter();
 
-  // Contoh data tabel
-  const allCustomers = [
+  // Type the allCustomers array
+  const allCustomers: Customer[] = [
     {
       no: 1,
       cif: "124900000",
@@ -134,7 +155,8 @@ const CustomerTable = () => {
     },
   ];
 
-  const filteredCustomers = (tab) => {
+  // Type the filter function
+  const filteredCustomers = (activeTab: TabType): Customer[] => {
     let filteredData = allCustomers.filter((customer) => {
       const searchTerm = searchQuery.toLowerCase();
       return Object.values(customer).some((value) =>
@@ -142,12 +164,12 @@ const CustomerTable = () => {
       );
     });
 
-    if (tab === "pipeline") {
+    if (activeTab === "pipeline") {
       filteredData = filteredData.filter(
         (customer) =>
           customer.status === "New" || customer.status === "Rejected"
       );
-    } else if (tab === "kelolaan") {
+    } else if (activeTab === "kelolaan") {
       filteredData = filteredData.filter(
         (customer) =>
           customer.status === "Contacted" || customer.status === "Closed"
@@ -161,12 +183,36 @@ const CustomerTable = () => {
       );
     }
 
-    // Filter berdasarkan jumlah data per halaman
     return filteredData.slice(0, rowsPerPage);
   };
 
-  const handleRowsPerPageChange = (event) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
+  // Type the event handlers
+  const handleRowsPerPageChange = (event: React.ChangeEvent<HTMLSelectElement>): void => {
+    setRowsPerPage(parseInt(event.target.value, 10) as RowsPerPageOption);
+  };
+
+  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>): void => {
+    setSearchQuery(event.target.value);
+  };
+
+  const handleStatusFilterChange = (event: React.ChangeEvent<HTMLSelectElement>): void => {
+    setStatusFilter(event.target.value);
+  };
+
+  const handleTabChange = (newTab: TabType): void => {
+    setActiveTab(newTab);
+  };
+
+  // Helper function to get status style
+  const getStatusStyle = (status: CustomerStatus): string => {
+    const styles = {
+      New: "bg-yellow-100 text-yellow-600 border-yellow-600",
+      Processing: "bg-blue-100 text-blue-600 border-blue-600",
+      Rejected: "bg-red-100 text-red-600 border-red-600",
+      Contacted: "bg-purple-100 text-purple-600 border-purple-600",
+      Closed: "bg-green-100 text-green-600 border-green-600"
+    };
+    return styles[status] || "bg-gray-100 text-gray-600 border-gray-400";
   };
 
   return (
@@ -179,7 +225,7 @@ const CustomerTable = () => {
               ? "text-teal-500 border-b-2 border-teal-500"
               : "text-gray-400"
           }`}
-          onClick={() => setActiveTab("pipeline")}
+          onClick={() => handleTabChange("pipeline")}
         >
           Daftar Pipeline Nasabah
         </button>
@@ -189,7 +235,7 @@ const CustomerTable = () => {
               ? "text-teal-500 border-b-2 border-teal-500"
               : "text-gray-400"
           }`}
-          onClick={() => setActiveTab("kelolaan")}
+          onClick={() => handleTabChange("kelolaan")}
         >
           Daftar Nasabah Kelolaan
         </button>
@@ -204,7 +250,7 @@ const CustomerTable = () => {
             placeholder="Type keyword Search"
             className="w-full py-2 px-10 border border-gray-300 rounded-lg"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={handleSearchChange}
           />
           <span className="absolute left-3 top-2.5">🔍</span>
         </div>
@@ -214,7 +260,7 @@ const CustomerTable = () => {
           <select
             className="w-full py-2 px-3 border border-gray-300 rounded-lg appearance-none"
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
+            onChange={handleStatusFilterChange}
           >
             <option value="">Semua</option>
             {activeTab === "pipeline" && (
@@ -278,20 +324,9 @@ const CustomerTable = () => {
                 <td className="py-4 px-6">
                   <div className="inline-flex items-center">
                     <span
-                      className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-sm font-medium border min-w-[90px] text-center
-    ${
-      customer.status === "New"
-        ? "bg-yellow-100 text-yellow-600 border-yellow-600"
-        : customer.status === "Processing"
-        ? "bg-blue-100 text-blue-600 border-blue-600"
-        : customer.status === "Rejected"
-        ? "bg-red-100 text-red-600 border-red-600"
-        : customer.status === "Contacted"
-        ? "bg-purple-100 text-purple-600 border-purple-600"
-        : customer.status === "Closed"
-        ? "bg-green-100 text-green-600 border-green-600"
-        : "bg-gray-100 text-gray-600 border-gray-400"
-    }`}
+                      className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-sm font-medium border min-w-[90px] text-center ${getStatusStyle(
+                        customer.status
+                      )}`}
                     >
                       {customer.status}
                     </span>
