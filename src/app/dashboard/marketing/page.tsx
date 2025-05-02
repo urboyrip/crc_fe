@@ -4,6 +4,7 @@ import Header from "@/app/components/Header";
 import Footer from "@/app/components/Footer";
 import CustomerTable from "@/app/components/CustomerTable";
 import CardItem from "@/app/components/CardItem";
+import Link from "next/link";
 
 export default function DashboardMarketing() {
   // Contoh data untuk beberapa CardItem
@@ -89,9 +90,20 @@ export default function DashboardMarketing() {
             </div>
           </div>
 
-          {/* Tabel Nasabah */}
+          {/* Tabel Nasabah dengan Button */}
           <div>
-            <h3 className="text-lg md:text-xl font-semibold text-gray-700 mb-4">Tabel Nasabah</h3>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg md:text-xl font-semibold text-gray-700">Tabel Nasabah</h3>
+              <Link href="/dashboard/marketing/inputnasabah">
+                <button className="bg-teal-500 hover:bg-teal-600 text-white px-4 py-2 rounded-md flex items-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Masukan Nasabah Baru
+                </button>
+              </Link>
+            </div>
+            
             <div className="bg-white rounded-lg border p-4 shadow-sm overflow-x-auto">
               <CustomerTable />
             </div>

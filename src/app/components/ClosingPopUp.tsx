@@ -14,7 +14,7 @@ export default function ClosingPopup({ isOpen, onClose }: ClosingPopupProps) {
         <FaCheckCircle className="text-teal-600 text-6xl mx-auto mb-4" />
         <h2 className="text-2xl font-bold text-teal-600 mb-2">CLOSED</h2>
         <p className="text-lg font-semibold text-teal-600">
-          Selamat anda telah closing,<br />kerja lebih keras lagi!
+          Selamat atas pencapaiannya!
         </p>
         <button
           onClick={onClose}

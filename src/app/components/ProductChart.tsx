@@ -253,11 +253,38 @@ const ProductChart: React.FC<ProductChartProps> = ({ className }) => {
   
   return (
     <div className={`border border-teal-500 rounded-lg overflow-hidden bg-white p-4 ${className}`}>
-      <div className="flex flex-row justify-between items-center mb-2">
-        <h2 className="text-xl font-semibold">Performa Target Produk</h2>
+      <div className="flex flex-col md:flex-row justify-between items-start mb-2">
+        <h2 className="text-xl font-semibold mb-2 md:mb-0">Performa Target Produk</h2>
         
-        <div className="flex flex-row items-center gap-3">
-          {/* Period selection */}
+        <div className="w-full md:w-auto">
+          {/* Product dropdown */}
+          <div className="relative w-full md:w-40 mb-2">
+            <button
+              className="w-full flex justify-between items-center px-3 py-1 bg-white border border-gray-300 rounded-lg focus:outline-none"
+              onClick={() => setShowProductDropdown(!showProductDropdown)}
+            >
+              <span className="text-gray-700 text-sm">{selectedProduct}</span>
+              <ChevronDown className="w-4 h-4 text-gray-500" />
+            </button>
+            
+            {showProductDropdown && (
+              <div className="absolute right-0 z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg">
+                <ul>
+                  {products.map((product) => (
+                    <li
+                      key={product}
+                      className="px-3 py-1 hover:bg-gray-100 cursor-pointer text-sm"
+                      onClick={() => handleSelectProduct(product)}
+                    >
+                      {product}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+          
+          {/* Period selection moved here, under the product dropdown */}
           <div className="flex rounded-lg bg-gray-100 w-max">
             <button
               className={`px-4 py-1 rounded-lg text-sm ${
@@ -283,33 +310,6 @@ const ProductChart: React.FC<ProductChartProps> = ({ className }) => {
             >
               Years
             </button>
-          </div>
-          
-          {/* Product dropdown */}
-          <div className="relative w-40">
-            <button
-              className="w-full flex justify-between items-center px-3 py-1 bg-white border border-gray-300 rounded-lg focus:outline-none"
-              onClick={() => setShowProductDropdown(!showProductDropdown)}
-            >
-              <span className="text-gray-700 text-sm">{selectedProduct}</span>
-              <ChevronDown className="w-4 h-4 text-gray-500" />
-            </button>
-            
-            {showProductDropdown && (
-              <div className="absolute right-0 z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg">
-                <ul>
-                  {products.map((product) => (
-                    <li
-                      key={product}
-                      className="px-3 py-1 hover:bg-gray-100 cursor-pointer text-sm"
-                      onClick={() => handleSelectProduct(product)}
-                    >
-                      {product}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
           </div>
         </div>
       </div>

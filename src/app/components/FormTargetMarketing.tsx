@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import { ChevronRight, User, Calendar } from "lucide-react";
+import VerifyPopup from "./VerifyPopup";
+import SavePopUp from "./SavePopUp";
 
 const FormTargetMarketing = () => {
   // Data untuk produks dengan state yang dapat diubah
@@ -17,7 +19,6 @@ const FormTargetMarketing = () => {
   const [marketingName, setMarketingName] = useState("Ucup 1");
   const [selectedMonth, setSelectedMonth] = useState("Maret");
   const [totalTarget, setTotalTarget] = useState("");
-  const [description, setDescription] = useState("");
   
   // State untuk dropdown
   const [isMarketingOpen, setIsMarketingOpen] = useState(false);
@@ -85,20 +86,34 @@ const FormTargetMarketing = () => {
     setIsMonthOpen(false);
   };
   
-  // Fungsi untuk submit form
+  // Tambahkan state untuk popup
+  const [showVerifyPopup, setShowVerifyPopup] = useState(false);
+  const [showSavePopup, setShowSavePopup] = useState(false);
+
+  // Modify handleSubmit function
   const handleSubmit = (e) => {
     e.preventDefault();
+    setShowVerifyPopup(true);
+  };
+
+  // Handle verify confirmation
+  const handleVerifyConfirm = () => {
+    setShowVerifyPopup(false);
     // Implementasi logika submit
     console.log({
       marketingName,
       selectedMonth,
       products,
-      totalTarget,
-      description
+      totalTarget
     });
-    alert("Target marketing berhasil disimpan!");
+    setShowSavePopup(true);
   };
-  
+
+  // Handle save completion
+  const handleSaveComplete = () => {
+    setShowSavePopup(false);
+  };
+
   return (
     <div className="max-w-4xl mx-auto p-6 bg-white border border-teal-500 rounded-lg shadow-md">
       <h1 className="text-2xl font-bold text-center mb-4">Masukan Target Marketing</h1>
@@ -231,17 +246,6 @@ const FormTargetMarketing = () => {
         </div>
       </div>
       
-      {/* Description */}
-      <div className="mb-6">
-        <input
-          type="text"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="Deskripsi (Optional)"
-          className="w-full p-4 border border-slate-300 rounded-lg text-lg"
-        />
-      </div>
-      
       {/* Submit Button */}
       <button
         onClick={handleSubmit}
@@ -249,6 +253,18 @@ const FormTargetMarketing = () => {
       >
         Submit
       </button>
+
+      {/* Add Popups */}
+      <VerifyPopup 
+        isOpen={showVerifyPopup} 
+        onClose={() => setShowVerifyPopup(false)}
+        onConfirm={handleVerifyConfirm}
+      />
+      
+      <SavePopUp 
+        isOpen={showSavePopup} 
+        onClose={handleSaveComplete}
+      />
     </div>
   );
 };

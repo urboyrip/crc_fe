@@ -301,7 +301,7 @@ const CustomerTable = () => {
                   <button
                     className="px-4 py-1 border border-teal-500 text-teal-500 rounded-md hover:bg-teal-50"
                     onClick={() =>
-                      router.push("/dashboard/marketing/detailcustomer")
+                      router.push("/dashboard/marketing/customer/1")
                     }
                   >
                     Details

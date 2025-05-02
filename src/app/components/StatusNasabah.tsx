@@ -2,9 +2,14 @@ import { useState } from "react";
 import Image from "next/image";
 import { ChevronRight, Check, Phone, X } from "lucide-react";
 import ClosingPopup from "./ClosingPopUp";
+import VerifyPopup from "./VerifyPopup";
+import SavePopUp from "./SavePopUp";
 
 const StatusNasabah = () => {
-  const [showPopup, setShowPopup] = useState(false);
+  const [showVerifyPopup, setShowVerifyPopup] = useState(false);
+  const [showSavePopup, setShowSavePopup] = useState(false);
+  const [showClosingPopup, setShowClosingPopup] = useState(false);
+
   // Data untuk dropdown
   const statusOptions = [
     { name: "Closed", icon: <Check className="w-5 h-5 text-white" /> },
@@ -25,7 +30,6 @@ const StatusNasabah = () => {
   const [selectedStatus, setSelectedStatus] = useState("Closed");
   const [selectedProduct, setSelectedProduct] = useState("Griya");
   const [amount, setAmount] = useState("");
-  const [description, setDescription] = useState("");
 
   // State untuk tracking dropdown mana yang terbuka
   const [isStatusOpen, setIsStatusOpen] = useState(false);
@@ -67,6 +71,25 @@ const StatusNasabah = () => {
   const getProductIconSrc = () => {
     const product = productOptions.find((p) => p.name === selectedProduct);
     return product?.icon || "/Logo.png";
+  };
+
+  // Handle verify confirmation
+  const handleVerifyConfirm = () => {
+    setShowVerifyPopup(false);
+    setShowSavePopup(true);
+  };
+
+  // Handle save completion
+  const handleSaveComplete = () => {
+    setShowSavePopup(false);
+    if (selectedStatus === "Closed") {
+      setShowClosingPopup(true);
+    }
+  };
+
+  // Handle submit button click
+  const handleSubmit = () => {
+    setShowVerifyPopup(true);
   };
 
   return (
@@ -171,27 +194,30 @@ const StatusNasabah = () => {
         )}
       </div>
 
-      {/* Description Field */}
-      <div className="mb-6">
-        <label className="block text-xl font-medium mb-2">
-        </label>
-        <input
-          type="text"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="Deskripsi (Optional)"
-          className="w-full p-4 border border-slate-300 rounded-lg text-lg"
-        />
-      </div>
-
       {/* Update Status Button */}
       <button
         className="w-full p-4 bg-teal-500 text-white text-lg font-medium rounded-lg hover:bg-teal-600 transition"
-        onClick={() => setShowPopup(true)}
+        onClick={handleSubmit}
       >
         Ubah Status
       </button>
-      <ClosingPopup isOpen={showPopup} onClose={() => setShowPopup(false)} />
+
+      {/* Popups */}
+      <VerifyPopup 
+        isOpen={showVerifyPopup} 
+        onClose={() => setShowVerifyPopup(false)}
+        onConfirm={handleVerifyConfirm}
+      />
+      
+      <SavePopUp 
+        isOpen={showSavePopup} 
+        onClose={handleSaveComplete}
+      />
+      
+      <ClosingPopup 
+        isOpen={showClosingPopup} 
+        onClose={() => setShowClosingPopup(false)} 
+      />
     </div>
   );
 };
