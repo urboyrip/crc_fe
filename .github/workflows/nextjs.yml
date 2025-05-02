@@ -40,7 +40,6 @@ jobs:
 
       - name: Deploy to production directory
         run: |
-          sudo mkdir -p /var/www/frontend
           sudo rm -rf /var/www/frontend/*
           sudo cp -r .next public package.json /var/www/frontend/
           cd /var/www/frontend
