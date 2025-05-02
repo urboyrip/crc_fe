@@ -40,11 +40,11 @@ jobs:
 
       - name: Deploy to production directory
         run: |
-          mkdir -p /var/www/frontend
-          rm -rf /var/www/frontend/*
-          cp -r .next public package.json /var/www/frontend/
+          sudo mkdir -p /var/www/frontend
+          sudo rm -rf /var/www/frontend/*
+          sudo cp -r .next public package.json /var/www/frontend/
           cd /var/www/frontend
-          ${{ steps.detect-package-manager.outputs.manager }} install --omit=dev
+          sudo ${{ steps.detect-package-manager.outputs.manager }} install --omit=dev
 
       - name: Restart frontend app using PM2
         run: |
