@@ -46,6 +46,9 @@ jobs:
           cd /var/www/frontend
           sudo ${{ steps.detect-package-manager.outputs.manager }} install --omit=dev
 
+      - name: Install PM2 globally
+        run: sudo npm install -g pm2
+
       - name: Restart frontend app using PM2
         run: |
           cd /var/www/frontend
