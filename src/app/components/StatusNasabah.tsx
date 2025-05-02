@@ -1,23 +1,33 @@
-import { useState } from "react";
+import { useState, ReactNode  } from "react";
 import Image from "next/image";
 import { ChevronRight, Check, Phone, X } from "lucide-react";
 import ClosingPopup from "./ClosingPopUp";
 import VerifyPopup from "./VerifyPopup";
 import SavePopUp from "./SavePopUp";
 
-const StatusNasabah = () => {
-  const [showVerifyPopup, setShowVerifyPopup] = useState(false);
-  const [showSavePopup, setShowSavePopup] = useState(false);
-  const [showClosingPopup, setShowClosingPopup] = useState(false);
+// Define interfaces for our data structures
+interface StatusOption {
+  name: string;
+  icon: ReactNode ;
+}
 
-  // Data untuk dropdown
-  const statusOptions = [
+interface ProductOption {
+  name: string;
+  icon: string;
+}
+
+const StatusNasabah: React.FC = () => {
+  const [showVerifyPopup, setShowVerifyPopup] = useState<boolean>(false);
+  const [showSavePopup, setShowSavePopup] = useState<boolean>(false);
+  const [showClosingPopup, setShowClosingPopup] = useState<boolean>(false);
+
+  const statusOptions: StatusOption[] = [
     { name: "Closed", icon: <Check className="w-5 h-5 text-white" /> },
     { name: "Contacted", icon: <Phone className="w-5 h-5 text-white" /> },
     { name: "Rejected", icon: <X className="w-5 h-5 text-white" /> },
   ];
 
-  const productOptions = [
+  const productOptions: ProductOption[] = [
     { name: "Griya", icon: "/griya.png" },
     { name: "Mitraguna", icon: "/mitraguna.png" },
     { name: "Oto", icon: "/oto.png" },
@@ -26,29 +36,23 @@ const StatusNasabah = () => {
     { name: "Hasanah Card", icon: "/HasanahCard.png" },
   ];
 
-  // State untuk tracking nilai yang dipilih
-  const [selectedStatus, setSelectedStatus] = useState("Closed");
-  const [selectedProduct, setSelectedProduct] = useState("Griya");
-  const [amount, setAmount] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState<string>("Closed");
+  const [selectedProduct, setSelectedProduct] = useState<string>("Griya");
+  const [amount, setAmount] = useState<string>("");
+  const [isStatusOpen, setIsStatusOpen] = useState<boolean>(false);
+  const [isProductOpen, setIsProductOpen] = useState<boolean>(false);
 
-  // State untuk tracking dropdown mana yang terbuka
-  const [isStatusOpen, setIsStatusOpen] = useState(false);
-  const [isProductOpen, setIsProductOpen] = useState(false);
-
-  // Fungsi untuk menangani perubahan status
-  const handleStatusChange = (status) => {
+  const handleStatusChange = (status: string): void => {
     setSelectedStatus(status);
     setIsStatusOpen(false);
   };
 
-  // Fungsi untuk menangani perubahan produk
-  const handleProductChange = (product) => {
+  const handleProductChange = (product: string): void => {
     setSelectedProduct(product);
     setIsProductOpen(false);
   };
 
-  // Warna latar belakang berdasarkan status
-  const getStatusColor = () => {
+  const getStatusColor = (): string => {
     switch (selectedStatus) {
       case "Closed":
         return "bg-teal-500";
@@ -61,34 +65,29 @@ const StatusNasabah = () => {
     }
   };
 
-  // Mendapatkan icon berdasarkan status
-  const getStatusIcon = () => {
+  const getStatusIcon = (): ReactNode  => {
     const status = statusOptions.find((s) => s.name === selectedStatus);
     return status?.icon || <Check className="w-5 h-5 text-white" />;
   };
 
-  // Mendapatkan icon berdasarkan produk
-  const getProductIconSrc = () => {
+  const getProductIconSrc = (): string => {
     const product = productOptions.find((p) => p.name === selectedProduct);
     return product?.icon || "/Logo.png";
   };
 
-  // Handle verify confirmation
-  const handleVerifyConfirm = () => {
+  const handleVerifyConfirm = (): void => {
     setShowVerifyPopup(false);
     setShowSavePopup(true);
   };
 
-  // Handle save completion
-  const handleSaveComplete = () => {
+  const handleSaveComplete = (): void => {
     setShowSavePopup(false);
     if (selectedStatus === "Closed") {
       setShowClosingPopup(true);
     }
   };
 
-  // Handle submit button click
-  const handleSubmit = () => {
+  const handleSubmit = (): void => {
     setShowVerifyPopup(true);
   };
 

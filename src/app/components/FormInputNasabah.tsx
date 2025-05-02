@@ -4,8 +4,32 @@ import React, { useState } from 'react';
 import VerifyPopup from './VerifyPopup';
 import SavePopUp from './SavePopUp';
 
-const CustomerInfoForm = () => {
-  const [formData, setFormData] = useState({
+interface FormData {
+  cif: string;
+  fullName: string;
+  phoneCode: string;
+  phoneNumber: string;
+  accountNumber: string;
+  email: string;
+  address: string;
+  occupation: string;
+  age: number;
+  income: number;
+  payroll: boolean;
+  gender: string;
+  maritalStatus: boolean;
+  categorySegment: string;
+  existingProduct: string[];
+  transactionActivity: string;
+}
+
+interface Option {
+  value: string;
+  label: string;
+}
+
+const CustomerInfoForm: React.FC = () => {
+  const [formData, setFormData] = useState<FormData>({
     cif: '88888909882472',
     fullName: '88888909882472',
     phoneCode: '+62',
@@ -28,8 +52,7 @@ const CustomerInfoForm = () => {
   const [showVerifyPopup, setShowVerifyPopup] = useState(false);
   const [showSavePopup, setShowSavePopup] = useState(false);
 
-  // Handle input changes for text/number fields
-  const handleChange = (e) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>): void => {
     const { name, value, type } = e.target;
     
     if (type === 'number') {
@@ -45,16 +68,14 @@ const CustomerInfoForm = () => {
     }
   };
 
-  // Handle boolean changes
-  const handleBoolChange = (name, value) => {
+  const handleBoolChange = (name: string, value: boolean): void => {
     setFormData(prev => ({
       ...prev,
       [name]: value
     }));
   };
 
-  // Handle multiple product selection
-  const handleProductChange = (product) => {
+  const handleProductChange = (product: string): void => {
     setFormData(prev => {
       const updatedProducts = prev.existingProduct.includes(product)
         ? prev.existingProduct.filter(p => p !== product)
@@ -67,12 +88,10 @@ const CustomerInfoForm = () => {
     });
   };
 
-  // Modify handleSubmit
   const handleSubmit = () => {
     setShowVerifyPopup(true);
   };
 
-  // Add verify confirmation handler
   const handleVerifyConfirm = () => {
     setShowVerifyPopup(false);
     // Implement submit logic here
@@ -80,18 +99,26 @@ const CustomerInfoForm = () => {
     setShowSavePopup(true);
   };
 
-  // Add save completion handler
   const handleSaveComplete = () => {
     setShowSavePopup(false);
   };
 
-  // Options for dropdowns
-  const genderOptions = [
+  const formatCurrency = (value: number): string => {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(value);
+  };
+
+  // Define option arrays with proper typing
+  const genderOptions: Option[] = [
     { value: 'male', label: 'Laki-laki' },
     { value: 'female', label: 'Perempuan' }
   ];
 
-  const categorySegmentOptions = [
+  const categorySegmentOptions: Option[] = [
     { value: 'BO2', label: 'BO2' },
     { value: 'Swasta', label: 'Swasta' },
     { value: 'Pendidikan', label: 'Pendidikan' },
@@ -102,7 +129,7 @@ const CustomerInfoForm = () => {
     { value: 'RS', label: 'RS' }
   ];
 
-  const existingProductOptions = [
+  const existingProductOptions: Option[] = [
     { value: 'mitraguna', label: 'Mitraguna' },
     { value: 'hasanahcard', label: 'Hasanah Card' },
     { value: 'griya', label: 'Griya' },
@@ -111,20 +138,10 @@ const CustomerInfoForm = () => {
     { value: 'prapensiun', label: 'Prapensiun' }
   ];
 
-  const transactionActivityOptions = [
+  const transactionActivityOptions: Option[] = [
     { value: 'Active', label: 'Active' },
     { value: 'Inactive', label: 'Inactive' }
   ];
-
-  // Format currency for display
-  const formatCurrency = (value) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(value);
-  };
 
   return (
     <div className="w-full max-w-7xl mx-auto p-6 border border-gray-200 rounded-lg shadow-sm bg-white">

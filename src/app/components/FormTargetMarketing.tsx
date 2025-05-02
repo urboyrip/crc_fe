@@ -4,9 +4,22 @@ import { ChevronRight, User, Calendar } from "lucide-react";
 import VerifyPopup from "./VerifyPopup";
 import SavePopUp from "./SavePopUp";
 
-const FormTargetMarketing = () => {
+// Define interfaces
+interface Product {
+  name: string;
+  icon: string;
+  target: string;
+  value: number;
+}
+
+interface MarketingOption {
+  name: string;
+  avatar: string;
+}
+
+const FormTargetMarketing: React.FC = () => {
   // Data untuk produks dengan state yang dapat diubah
-  const [products, setProducts] = useState([
+  const [products, setProducts] = useState<Product[]>([
     { name: "Griya", icon: "/griya.png", target: "Rp. 5.000.000.000,00", value: 5000000000 },
     { name: "Mitraguna", icon: "/mitraguna.png", target: "Rp. 5.000.000.000,00", value: 5000000000 },
     { name: "Prapensiun", icon: "/prapensiun.png", target: "Rp. 5.000.000.000,00", value: 5000000000 },
@@ -16,16 +29,16 @@ const FormTargetMarketing = () => {
   ]);
   
   // State untuk data forms lainnya
-  const [marketingName, setMarketingName] = useState("Ucup 1");
-  const [selectedMonth, setSelectedMonth] = useState("Maret");
-  const [totalTarget, setTotalTarget] = useState("");
+  const [marketingName, setMarketingName] = useState<string>("Ucup 1");
+  const [selectedMonth, setSelectedMonth] = useState<string>("Maret");
+  const [totalTarget, setTotalTarget] = useState<string>("");
   
   // State untuk dropdown
-  const [isMarketingOpen, setIsMarketingOpen] = useState(false);
-  const [isMonthOpen, setIsMonthOpen] = useState(false);
+  const [isMarketingOpen, setIsMarketingOpen] = useState<boolean>(false);
+  const [isMonthOpen, setIsMonthOpen] = useState<boolean>(false);
   
   // Data untuk marketing names
-  const marketingOptions = [
+  const marketingOptions: MarketingOption[] = [
     { name: "Ucup 1", avatar: "/avatar1.png" },
     { name: "Budi", avatar: "/avatar2.png" },
     { name: "Sarah", avatar: "/avatar3.png" },
@@ -33,19 +46,17 @@ const FormTargetMarketing = () => {
   ];
   
   // Data untuk bulan
-  const monthOptions = [
+  const monthOptions: string[] = [
     "Januari", "Februari", "Maret", "April", "Mei", "Juni",
     "Juli", "Agustus", "September", "Oktober", "November", "Desember"
   ];
-  
-  // Menghitung total target dari semua produk
-  useEffect(() => {
-    const total = products.reduce((sum, product) => sum + product.value, 0);
-    setTotalTarget(formatCurrency(total));
-  }, [products]);
+
+  // State untuk popup
+  const [showVerifyPopup, setShowVerifyPopup] = useState<boolean>(false);
+  const [showSavePopup, setShowSavePopup] = useState<boolean>(false);
   
   // Format angka ke format mata uang
-  const formatCurrency = (amount) => {
+  const formatCurrency = (amount: number): string => {
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',
       currency: 'IDR',
@@ -55,14 +66,13 @@ const FormTargetMarketing = () => {
   };
   
   // Parse input mata uang ke nilai numerik
-  const parseCurrency = (currencyString) => {
+  const parseCurrency = (currencyString: string): number => {
     return Number(currencyString.replace(/[^\d,-]/g, '').replace(',', '.'));
   };
   
   // Fungsi untuk mengubah target produk
-  const handleProductTargetChange = (index, targetValue) => {
+  const handleProductTargetChange = (index: number, targetValue: string): void => {
     const updatedProducts = [...products];
-    // Hapus karakter non-numerik untuk mendapatkan nilai numerik
     const numericValue = parseCurrency(targetValue);
     
     updatedProducts[index] = {
@@ -75,31 +85,26 @@ const FormTargetMarketing = () => {
   };
   
   // Fungsi untuk menangani perubahan marketing
-  const handleMarketingChange = (name) => {
+  const handleMarketingChange = (name: string): void => {
     setMarketingName(name);
     setIsMarketingOpen(false);
   };
   
   // Fungsi untuk menangani perubahan bulan
-  const handleMonthChange = (month) => {
+  const handleMonthChange = (month: string): void => {
     setSelectedMonth(month);
     setIsMonthOpen(false);
   };
   
-  // Tambahkan state untuk popup
-  const [showVerifyPopup, setShowVerifyPopup] = useState(false);
-  const [showSavePopup, setShowSavePopup] = useState(false);
-
   // Modify handleSubmit function
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: React.MouseEvent<HTMLButtonElement>): void => {
     e.preventDefault();
     setShowVerifyPopup(true);
   };
 
   // Handle verify confirmation
-  const handleVerifyConfirm = () => {
+  const handleVerifyConfirm = (): void => {
     setShowVerifyPopup(false);
-    // Implementasi logika submit
     console.log({
       marketingName,
       selectedMonth,
@@ -110,9 +115,15 @@ const FormTargetMarketing = () => {
   };
 
   // Handle save completion
-  const handleSaveComplete = () => {
+  const handleSaveComplete = (): void => {
     setShowSavePopup(false);
   };
+
+  // Effect untuk menghitung total
+  useEffect(() => {
+    const total = products.reduce((sum, product) => sum + product.value, 0);
+    setTotalTarget(formatCurrency(total));
+  }, [products]);
 
   return (
     <div className="max-w-4xl mx-auto p-6 bg-white border border-teal-500 rounded-lg shadow-md">
@@ -131,7 +142,7 @@ const FormTargetMarketing = () => {
               <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
                 {marketingOptions.find(m => m.name === marketingName)?.avatar ? (
                   <Image
-                    src={marketingOptions.find(m => m.name === marketingName)?.avatar}
+                  src={marketingOptions.find(m => m.name === marketingName)?.avatar || "/default-avatar.png"}
                     alt="Marketing Avatar"
                     width={40}
                     height={40}
