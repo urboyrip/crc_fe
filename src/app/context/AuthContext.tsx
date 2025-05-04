@@ -146,7 +146,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Check if response is JSON
       const contentType = response.headers.get('content-type');
       if (!contentType || !contentType.includes('application/json')) {
-        throw new Error('Server returned non-JSON response');
+        console.error('Non-JSON response:', await response.text());
+        throw new Error('Server returned invalid response format');
       }
 
       const data = await response.json();
@@ -154,15 +155,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!response.ok) {
         throw new Error(data.message || 'Login failed');
       }
+
       if (data.success) {
-        Cookies.set('token', data.token);
-        console.log(data)
-        await fetchUserProfile(data.token)
+        Cookies.set('token', data.token, {
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'strict'
+        });
+        await fetchUserProfile(data.token);
         return true;
       } else {
         throw new Error(data.message || 'Login failed');
       }
     } catch (err) {
+      console.error('Login error:', err);
       setError(err instanceof Error ? err.message : 'An error occurred');
       return false;
     } finally {
