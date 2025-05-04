@@ -1,7 +1,16 @@
-/** @type {import('next').NextConfig} */
+/** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
-    domains: ["localhost"],
+    domains: ["localhost", "192.168.21.105", "crc-fe-j9dc.vercel.app"],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**',
+      },
+    ],
+  },
+  env: {
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
   },
   webpack: (config: any) => {
     config.infrastructureLogging = {
@@ -10,3 +19,5 @@ const nextConfig = {
     return config;
   },
 };
+
+export default nextConfig;
