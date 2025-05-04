@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import Cookies from 'js-cookie';
 import { API_BASE_URL } from '@/app/constants/config';
 
-
 interface User {
   type: string;
   branch_name: string;
@@ -23,7 +22,7 @@ interface User {
 interface AuthContextType {
   user: User | null;
   token: string | null;
-  login: (nip: string, password: string) => Promise<void>;
+  login: (nip: string, password: string) => Promise<boolean>;
   logout: () => void;
   isLoading: boolean;
   error: string | null;
@@ -134,8 +133,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (nip: string, password: string) => {
     setIsLoading(true);
     setError(null);
+    
     try {
-      const loginResponse = await fetch(`${API_BASE_URL}/auth/login`, {
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -143,37 +143,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify({ nip, password }),
       });
 
-      const loginData = await loginResponse.json();
-
-      if (!loginData.success) {
-        throw new Error(loginData.message || 'Login failed');
+      // Check if response is JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Server returned non-JSON response');
       }
 
-      // Save token with secure cookie options)
-      Cookies.set('token', loginData.token, cookieOptions);
-      setToken(loginData.token);
-
-      // Fetch and store user profile
-      const profileResponse = await fetch(`${API_BASE_URL}/profile/summary`, {
-        headers: {
-          'Authorization': `Bearer ${loginData.token}`
-        }
-      });
+      const data = await response.json();
       
-      const profileData = await profileResponse.json();
-      
-      if (!profileData.success) {
-        throw new Error('Failed to fetch profile');
+      if (!response.ok) {
+        throw new Error(data.message || 'Login failed');
       }
 
-      // Save user data with secure cookie options
-      Cookies.set('user', JSON.stringify(profileData.data), cookieOptions);
-      setUser(profileData.data);
-
-      return loginData;
-    } catch (error: any) {
-      setError(error.message);
-      throw error;
+      if (data.success) {
+        Cookies.set('token', data.data.token);
+        Cookies.set('user', JSON.stringify(data.data.user));
+        setUser(data.data.user);
+        return true;
+      } else {
+        throw new Error(data.message || 'Login failed');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+      return false;
     } finally {
       setIsLoading(false);
     }

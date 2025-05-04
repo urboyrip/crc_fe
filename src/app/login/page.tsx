@@ -19,23 +19,23 @@ export default function LoginPage() {
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await login(nip, password);
+      const success = await login(nip, password);
       
-      // Get user data from cookies to check type
-      const userData = Cookies.get('user');
-      if (userData) {
-        const user = JSON.parse(userData);
-        if (user.type === 'marketing') {
-          router.push('/dashboard/marketing');
-        } else if (user.type === 'bm') {
-          router.push('/dashboard/manager');
-        } else {
-          throw new Error('Invalid user type');
+      if (success) {
+        const userData = Cookies.get('user');
+        if (userData) {
+          try {
+            const user = JSON.parse(userData);
+            const path = user.type === 'marketing' ? '/dashboard/marketing' : '/dashboard/manager';
+            router.replace(path); // Use replace instead of push
+          } catch (parseError) {
+            console.error('Failed to parse user data:', parseError);
+            throw new Error('Invalid user data format');
+          }
         }
       }
     } catch (error: any) {
       console.error('Login failed:', error);
-      // Error is already handled by AuthContext
     }
   };
 
