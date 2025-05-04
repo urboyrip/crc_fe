@@ -154,11 +154,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!response.ok) {
         throw new Error(data.message || 'Login failed');
       }
-
       if (data.success) {
-        Cookies.set('token', data.data.token);
-        Cookies.set('user', JSON.stringify(data.data.user));
-        setUser(data.data.user);
+        Cookies.set('token', data.token);
+        console.log(data)
+        await fetchUserProfile(data.token)
         return true;
       } else {
         throw new Error(data.message || 'Login failed');
