@@ -3,16 +3,19 @@
 import Image from "next/image";
 import { FiLogOut } from "react-icons/fi";
 import { useRouter } from "next/navigation";
+import { useAuth } from "../context/AuthContext";
 
 export default function Header() {
   const router = useRouter();
-  const handleLogout = () => {
-    // Lakukan logika logout Anda di sini (misalnya, menghapus token dari local storage)
-    localStorage.removeItem("authToken"); // Contoh: menghapus token
+  const { user, logout } = useAuth();
 
-    // Navigasi ke halaman /login
-    router.push("/login");
+  const handleLogout = () => {
+    // Call logout from AuthContext
+    logout();
+    // Redirect to login page
+    router.replace("/login");
   };
+
   return (
     <header className="w-full flex items-center justify-between px-6 py-4 bg-white rounded-t-xl shadow-sm">
       {/* Logo */}
@@ -31,7 +34,9 @@ export default function Header() {
             height={32}
             className="rounded-full"
           />
-          <span className="text-sm font-medium text-gray-800">Ucup</span>
+          <span className="text-sm font-medium text-gray-800">
+            {user?.name || 'User'}
+          </span>
         </div>
 
         {/* Divider */}

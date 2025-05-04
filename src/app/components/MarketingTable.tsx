@@ -1,43 +1,119 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ChevronDown } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import Cookies from 'js-cookie';
+import { API_BASE_URL } from '@/app/constants/config';
 
-interface MarketingData {
-  no: number;
-  nip: string;
-  nama: string;
-  bulan: string;
-  target: string;
-  status: 'Sudah' | 'Belum';
+interface AssignmentData {
+  marketing_nip: string;
+  marketing_name: string;
+  has_target: boolean;
+  total_target: number;
+  target_details: {
+    product_id: number;
+    product_name: string;
+    amount: number;
+  }[];
 }
 
 const MarketingTable = () => {
   const [searchKeyword, setSearchKeyword] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [showStatusDropDown, setShowStatusDropDown] = useState(false);
-  
-  // Sample data
-  const marketingData: MarketingData[] = [
-    { no: 1, nip: '124900000', nama: 'Ucuo Arip', bulan: 'Maret', target: 'Rp. 500.000.000,00', status: 'Sudah' },
-    { no: 2, nip: '124900000', nama: 'Ucuo Arip', bulan: 'April', target: 'Rp. 500.000.000,00', status: 'Belum' },
-    { no: 2, nip: '124900000', nama: 'Ucuo Arip', bulan: 'Mei', target: 'Rp. 500.000.000,00', status: 'Belum' },
-    { no: 2, nip: '124900000', nama: 'Ucuo Arip', bulan: 'Juni', target: 'Rp. 500.000.000,00', status: 'Belum' },
-    { no: 2, nip: '124900000', nama: 'Ucuo Arip', bulan: 'Juli', target: 'Rp. 500.000.000,00', status: 'Belum' },
-    { no: 2, nip: '124900000', nama: 'Ucuo Arip', bulan: 'Agustus', target: 'Rp. 500.000.000,00', status: 'Belum' },
-    { no: 2, nip: '124900000', nama: 'Ucuo Arip', bulan: 'Maret', target: 'Rp. 500.000.000,00', status: 'Belum' },
-  ];
+  const [marketingData, setMarketingData] = useState<AssignmentData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const { user } = useAuth();
+
+  // Helper function to get month name
+  const getMonthName = (monthNumber: number): string => {
+    const months = [
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    ];
+    return months[monthNumber - 1] || '';
+  };
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        const token = Cookies.get('token');
+        // Debug logs
+        console.log('User data:', user);
+        console.log('Target month:', user?.target_month);
+        console.log('Target year:', user?.target_year);
+
+        if (!user?.target_month || !user?.target_year) {
+          throw new Error('Month or year not available');
+        }
+
+        // Log the API URL being called
+        const url = `${API_BASE_URL}/bm/monitoring/assignment?month=${user.target_month}&year=${user.target_year}`;
+        console.log('Fetching from:', url);
+
+        const response = await fetch(url, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        // Log response status
+        console.log('Response status:', response.status);
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch data');
+        }
+
+        const result = await response.json();
+        // Log the result
+        console.log('API response:', result);
+
+        if (result.success) {
+          setMarketingData(result.data);
+        } else {
+          throw new Error(result.message);
+        }
+      } catch (err) {
+        console.error('Error details:', err);
+        setError(err instanceof Error ? err.message : 'An error occurred');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    // Only call fetchData if user data is available
+    if (user?.target_month && user?.target_year) {
+      fetchData();
+    }
+  }, [user?.target_month, user?.target_year]);
+
+  // Format currency helper function
+  const formatCurrency = (amount: number): string => {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(amount)
+    .replace('IDR', 'Rp.')
+    .trim();
+  };
 
   // Filter data based on search keyword and status
   const filteredData = marketingData.filter((item) => {
     const matchesKeyword =
       searchKeyword === '' ||
-      item.nama.toLowerCase().includes(searchKeyword.toLowerCase()) ||
-      item.nip.includes(searchKeyword) ||
-      item.bulan.toLowerCase().includes(searchKeyword.toLowerCase());
+      item.marketing_name.toLowerCase().includes(searchKeyword.toLowerCase()) ||
+      item.marketing_nip.includes(searchKeyword);
 
     const matchesStatus =
-      statusFilter === '' || item.status === statusFilter;
+      statusFilter === '' || 
+      (statusFilter === 'Sudah' && item.has_target) ||
+      (statusFilter === 'Belum' && !item.has_target);
 
     return matchesKeyword && matchesStatus;
   });
@@ -46,6 +122,14 @@ const MarketingTable = () => {
     setStatusFilter(status);
     setShowStatusDropDown(false);
   };
+
+  if (isLoading) {
+    return <div className="text-center py-4">Loading...</div>;
+  }
+
+  if (error) {
+    return <div className="text-red-500 text-center py-4">{error}</div>;
+  }
 
   return (
     <div className="border border-teal-500 rounded-lg overflow-hidden">
@@ -104,7 +188,6 @@ const MarketingTable = () => {
           </div>
         </div>
 
-        {/* Table */}
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead>
@@ -131,31 +214,31 @@ const MarketingTable = () => {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredData.map((item, index) => (
-                <tr key={index}>
+                <tr key={item.marketing_nip}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                    {item.no}
+                    {index + 1}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                    {item.nip}
+                    {item.marketing_nip}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                    {item.nama}
+                    {item.marketing_name}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                    {item.bulan}
+                    {user?.target_month ? getMonthName(user.target_month) : '-'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                    {item.target}
+                    {formatCurrency(item.total_target)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span
                       className={`px-4 py-1 rounded-full text-sm font-medium ${
-                        item.status === 'Sudah'
+                        item.has_target
                           ? 'bg-teal-100 text-teal-600 border border-teal-600'
                           : 'bg-orange-100 text-orange-600 border border-orange-600'
                       }`}
                     >
-                      {item.status}
+                      {item.has_target ? 'Sudah' : 'Belum'}
                     </span>
                   </td>
                 </tr>

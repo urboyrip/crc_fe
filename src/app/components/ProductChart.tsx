@@ -15,6 +15,9 @@ import {
   Legend,
   ChartConfiguration,
 } from 'chart.js';
+import Cookies from 'js-cookie';
+import { useAuth } from '../context/AuthContext';
+import { API_BASE_URL } from '@/app/constants/config';
 
 Chart.register(
   LineController,
@@ -28,105 +31,162 @@ Chart.register(
   Legend
 );
 
-// Dummy sales data untuk inisialisasi
-const salesData = [
-  {
-    id: '1',
-    name: 'ucup1',
-    color: '#10b981',
-    checked: true,
-    data: {
-      weekly: { Mon: 1000000, Tue: 2000000, Wed: 3000000, Thu: 2500000, Fri: 4000000 },
-      monthly: { Jan: 10000000, Feb: 20000000, Mar: 15000000, Apr: 25000000 },
-      yearly: { '2022': 80000000, '2023': 120000000 },
-    },
-  },
-  {
-    id: '2',
-    name: 'ucup2',
-    color: '#3b82f6',
-    checked: true,
-    data: {
-      weekly: { Mon: 1500000, Tue: 1800000, Wed: 2100000, Thu: 1900000, Fri: 3000000 },
-      monthly: { Jan: 12000000, Feb: 18000000, Mar: 16000000, Apr: 22000000 },
-      yearly: { '2022': 70000000, '2023': 110000000 },
-    },
-  },
-];
-
-// Tipe data
-interface PeriodData {
-  [key: string]: number;
+interface Product {
+  id: number;
+  nama: string;
+  prediksi: string;
+  ikon: string;
 }
 
-interface SalesDataPeriods {
-  weekly: PeriodData;
-  monthly: PeriodData;
-  yearly: PeriodData;
+interface Dataset {
+  marketing_nip: string;
+  label: string;
+  data: number[];
+  targets: null;
+  borderColor: string;
+  backgroundColor: string;
+  fill: boolean;
+  tension: number;
+  target: number;
 }
 
-interface SalesData {
-  id: string;
-  name: string;
-  color: string;
-  checked: boolean;
-  data: SalesDataPeriods;
+interface ChartData {
+  produk: string;
+  produk_id: string;
+  labels: string[];
+  datasets: Dataset[];
 }
 
 interface ProductChartProps {
   className?: string;
 }
 
-type PeriodType = 'Week' | 'Month' | 'Years';
-
 const ProductChart: React.FC<ProductChartProps> = ({ className = '' }) => {
   const [showProductDropdown, setShowProductDropdown] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState('Mitraguna');
-  const [periodType, setPeriodType] = useState<PeriodType>('Month');
-  const [salesState, setSalesState] = useState<SalesData[]>(salesData);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [periodType, setPeriodType] = useState<'week' | 'month' | 'year'>('month');
+  const [chartData, setChartData] = useState<ChartData | null>(null);
+  const [checkedMarketings, setCheckedMarketings] = useState<Set<string>>(new Set(['ALL']));
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const chartRef = useRef<HTMLCanvasElement>(null);
   const chartInstance = useRef<Chart<'line'> | null>(null);
+  const { user } = useAuth();
 
-  const PRODUCTS = ['Mitraguna', 'Griya', 'OTO', 'Modal Kerja', 'Investasi', 'KTA'] as const;
+  // Fetch products with better error handling
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setIsLoading(true);
+        const token = Cookies.get('token');
+        if (!token) throw new Error('No auth token found');
 
-  const handleSelectProduct = (product: string) => {
+        const response = await fetch(`${API_BASE_URL}/produk`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        
+        if (!response.ok) throw new Error('Failed to fetch products');
+        
+        const data = await response.json();
+        setProducts(data);
+        if (data.length > 0) setSelectedProduct(data[0]);
+      } catch (error) {
+        setError(error instanceof Error ? error.message : 'Failed to fetch products');
+        console.error('Error fetching products:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, []);
+
+  // Improved chart data fetching
+  useEffect(() => {
+    const fetchChartData = async () => {
+      if (!selectedProduct || !user?.target_month || !user?.target_year) return;
+
+      try {
+        setIsLoading(true);
+        const token = Cookies.get('token');
+        if (!token) throw new Error('No auth token found');
+
+        const url = new URL(`${API_BASE_URL}/bm/monitoring/product-performance`);
+        url.searchParams.append('month', user.target_month.toString());
+        url.searchParams.append('year', user.target_year.toString());
+        url.searchParams.append('product_id', selectedProduct.id.toString());
+        url.searchParams.append('group_by', periodType);
+
+        const response = await fetch(url.toString(), {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        if (!response.ok) throw new Error('Failed to fetch chart data');
+
+        const data = await response.json();
+        if (data.success) {
+          setChartData(data.data);
+          const newChecked = new Set(['ALL']);
+          setCheckedMarketings(newChecked);
+        } else {
+          throw new Error(data.message || 'Failed to fetch chart data');
+        }
+      } catch (error) {
+        setError(error instanceof Error ? error.message : 'Failed to fetch chart data');
+        console.error('Error fetching chart data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchChartData();
+  }, [selectedProduct, user?.target_month, user?.target_year, periodType]);
+
+  const handleSelectProduct = (product: Product) => {
     setSelectedProduct(product);
     setShowProductDropdown(false);
   };
 
-  const handlePeriodChange = (period: PeriodType) => {
+  const handlePeriodChange = (period: 'week' | 'month' | 'year') => {
     setPeriodType(period);
   };
 
-  const handleCheckboxChange = (id: string) => {
-    setSalesState((prev) =>
-      prev.map((sales) =>
-        sales.id === id ? { ...sales, checked: !sales.checked } : sales
-      )
-    );
+  const handleCheckboxChange = (marketingNip: string) => {
+    setCheckedMarketings(prev => {
+      const newChecked = new Set(prev);
+      if (marketingNip === 'ALL') {
+        if (newChecked.has('ALL')) {
+          newChecked.clear();
+        } else {
+          newChecked.clear();
+          newChecked.add('ALL');
+        }
+      } else {
+        if (newChecked.has(marketingNip)) {
+          newChecked.delete(marketingNip);
+          newChecked.delete('ALL');
+        } else {
+          newChecked.add(marketingNip);
+          if (chartData && newChecked.size === chartData.datasets.length - 1) {
+            newChecked.add('ALL');
+          }
+        }
+      }
+      return newChecked;
+    });
   };
 
-  const getLabels = (): string[] => {
-    const firstSales = salesState.find((s) => s.checked);
-    if (!firstSales) return [];
-
-    return Object.keys({
-      Week: firstSales.data.weekly,
-      Month: firstSales.data.monthly,
-      Years: firstSales.data.yearly,
-    }[periodType]);
-  };
-
-  const getDataValues = (sales: SalesData): number[] => {
-    return Object.values({
-      Week: sales.data.weekly,
-      Month: sales.data.monthly,
-      Years: sales.data.yearly,
-    }[periodType]);
-  };
+  useEffect(() => {
+    updateChart();
+    return () => {
+      chartInstance.current?.destroy();
+    };
+  }, [chartData, checkedMarketings]);
 
   const updateChart = () => {
+    if (!chartData) return;
     if (chartInstance.current) {
       chartInstance.current.destroy();
     }
@@ -134,20 +194,22 @@ const ProductChart: React.FC<ProductChartProps> = ({ className = '' }) => {
     const ctx = chartRef.current?.getContext('2d');
     if (!ctx) return;
 
+    const filteredDatasets = chartData.datasets.filter(
+      dataset => checkedMarketings.has(dataset.marketing_nip)
+    );
+
     const chartConfig: ChartConfiguration<'line'> = {
       type: 'line',
       data: {
-        labels: getLabels(),
-        datasets: salesState
-          .filter((sales) => sales.checked)
-          .map((sales) => ({
-            label: sales.name,
-            data: getDataValues(sales),
-            borderColor: sales.color,
-            backgroundColor: `${sales.color}20`,
-            tension: 0.4,
-            fill: true,
-          })),
+        labels: chartData.labels,
+        datasets: filteredDatasets.map(dataset => ({
+          label: dataset.label,
+          data: dataset.data,
+          borderColor: dataset.borderColor,
+          backgroundColor: `${dataset.backgroundColor}20`,
+          tension: dataset.tension,
+          fill: true,
+        })),
       },
       options: {
         responsive: true,
@@ -192,89 +254,92 @@ const ProductChart: React.FC<ProductChartProps> = ({ className = '' }) => {
     chartInstance.current = new Chart(ctx, chartConfig);
   };
 
-  useEffect(() => {
-    updateChart();
-    return () => {
-      chartInstance.current?.destroy();
-    };
-  }, [salesState, periodType, selectedProduct]);
-
   return (
     <div className={`border border-teal-500 rounded-lg overflow-hidden bg-white p-4 ${className}`}>
-      <div className="flex flex-col md:flex-row justify-between items-start mb-2">
-        <h2 className="text-xl font-semibold mb-2 md:mb-0">Performa Target Produk</h2>
-
-        <div className="w-full md:w-auto">
-          <div className="relative w-full md:w-40 mb-2">
-            <button
-              className="w-full flex justify-between items-center px-3 py-1 bg-white border border-gray-300 rounded-lg focus:outline-none"
-              onClick={() => setShowProductDropdown(!showProductDropdown)}
-            >
-              <span className="text-gray-700 text-sm">{selectedProduct}</span>
-              <ChevronDown className="w-4 h-4 text-gray-500" />
-            </button>
-
-            {showProductDropdown && (
-              <div className="absolute right-0 z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg">
-                <ul>
-                  {PRODUCTS.map((product) => (
-                    <li
-                      key={product}
-                      className="px-3 py-1 hover:bg-gray-100 cursor-pointer text-sm"
-                      onClick={() => handleSelectProduct(product)}
-                    >
-                      {product}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
-
-          <div className="flex rounded-lg bg-gray-100 w-max">
-            {(['Week', 'Month', 'Years'] as PeriodType[]).map((period) => (
-              <button
-                key={period}
-                className={`px-4 py-1 rounded-lg text-sm ${
-                  periodType === period ? 'bg-teal-500 text-white' : 'text-gray-700'
-                }`}
-                onClick={() => handlePeriodChange(period)}
-              >
-                {period}
-              </button>
-            ))}
-          </div>
+      {error ? (
+        <div className="text-red-500 text-center py-4">{error}</div>
+      ) : isLoading ? (
+        <div className="flex justify-center items-center h-48">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500"></div>
         </div>
-      </div>
+      ) : (
+        <>
+          <div className="flex flex-col md:flex-row justify-between items-start mb-2">
+            <h2 className="text-xl font-semibold mb-2 md:mb-0">Performa Target Produk</h2>
 
-      <div className="mb-2">
-        <div className="text-gray-500 text-sm">10 August 2023</div>
-      </div>
+            <div className="w-full md:w-auto">
+              <div className="relative w-full md:w-40 mb-2">
+                <button
+                  className="w-full flex justify-between items-center px-3 py-1 bg-white border border-gray-300 rounded-lg focus:outline-none"
+                  onClick={() => setShowProductDropdown(!showProductDropdown)}
+                >
+                  <span className="text-gray-700 text-sm">
+                    {selectedProduct?.nama || 'Pilih Produk'}
+                  </span>
+                  <ChevronDown className="w-4 h-4 text-gray-500" />
+                </button>
 
-      <div className="h-48 mb-4">
-        <canvas ref={chartRef}></canvas>
-      </div>
+                {showProductDropdown && (
+                  <div className="absolute right-0 z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg">
+                    <ul>
+                      {products.map((product) => (
+                        <li
+                          key={product.id}
+                          className="px-3 py-1 hover:bg-gray-100 cursor-pointer text-sm"
+                          onClick={() => handleSelectProduct(product)}
+                        >
+                          {product.nama}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
 
-      <div className="flex flex-wrap gap-3">
-        {salesState.map((sales) => (
-          <div key={sales.id} className="flex items-center">
-            <input
-              type="checkbox"
-              id={sales.id}
-              checked={sales.checked}
-              onChange={() => handleCheckboxChange(sales.id)}
-              className="w-4 h-4 rounded border-gray-300 text-teal-500 focus:ring-teal-500"
-            />
-            <label htmlFor={sales.id} className="ml-1 flex items-center text-sm">
-              <div
-                className="w-3 h-3 mr-1 rounded-sm"
-                style={{ backgroundColor: sales.color }}
-              ></div>
-              {sales.name}
-            </label>
+              <div className="flex rounded-lg bg-gray-100 w-max">
+                {(['week', 'month', 'year'] as const).map((period) => (
+                  <button
+                    key={period}
+                    className={`px-4 py-1 rounded-lg text-sm ${
+                      periodType === period ? 'bg-teal-500 text-white' : 'text-gray-700'
+                    }`}
+                    onClick={() => handlePeriodChange(period)}
+                  >
+                    {period.charAt(0).toUpperCase() + period.slice(1)}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
-        ))}
-      </div>
+
+          <div className="h-48 mb-4">
+            <canvas ref={chartRef}></canvas>
+          </div>
+
+          {chartData && (
+            <div className="flex flex-wrap gap-3">
+              {chartData.datasets.map((dataset) => (
+                <div key={dataset.marketing_nip} className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id={dataset.marketing_nip}
+                    checked={checkedMarketings.has(dataset.marketing_nip)}
+                    onChange={() => handleCheckboxChange(dataset.marketing_nip)}
+                    className="w-4 h-4 rounded border-gray-300 text-teal-500 focus:ring-teal-500"
+                  />
+                  <label htmlFor={dataset.marketing_nip} className="ml-1 flex items-center text-sm">
+                    <div
+                      className="w-3 h-3 mr-1 rounded-sm"
+                      style={{ backgroundColor: dataset.backgroundColor }}
+                    ></div>
+                    {dataset.label}
+                  </label>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 };

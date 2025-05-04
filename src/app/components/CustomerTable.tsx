@@ -1,216 +1,139 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Cookies from "js-cookie";
+import { API_BASE_URL } from '@/app/constants/config';
+
 
 // Define interfaces for type safety
-interface Customer {
-  no: number;
-  cif: string;
-  noRek: string;
-  produk: string;
-  status: CustomerStatus;
-  nama: string;
-}
-
 interface CustomerTableProps {
-  tab: "pipeline" | "kelolaan";
+  tab: TabType;
+  onTabChange: (newTab: TabType) => void; // Add this
   event?: string;
 }
 
-// Define specific types for status and tabs
-type CustomerStatus = "New" | "Processing" | "Rejected" | "Contacted" | "Closed";
-type TabType = "pipeline" | "kelolaan";
-type RowsPerPageOption = 10 | 50 | 100 | number;
+interface ApiCustomer {
+  id: number;
+  nama: string;
+  cif: string;
+  nomor_rekening: string;
+  nama_perusahaan: string;
+  produk_eksisting: string[] | null;
+  aktivitas_transaksi: string;
+  status: string;
+}
 
-const CustomerTable: React.FC<CustomerTableProps> = ({ tab, event }) => {
-  // State with proper typing
-  const [activeTab, setActiveTab] = useState<TabType>("pipeline");
-  const [searchQuery, setSearchQuery] = useState<string>("");
-  const [statusFilter, setStatusFilter] = useState<string>("");
-  const [rowsPerPage, setRowsPerPage] = useState<RowsPerPageOption>(10);
+interface ApiResponse {
+  data: ApiCustomer[];
+  message: string;
+  meta: {
+    current_page: number;
+    per_page: number;
+    total_items: number;
+    total_pages: number;
+  };
+  success: boolean;
+}
+
+// Define specific types for status and tabs
+type CustomerStatus = "new" | "rejected" | "contacted" | "closed";
+type TabType = "pipeline" | "kelolaan";
+
+const CustomerTable: React.FC<CustomerTableProps> = ({ tab, onTabChange, event }) => {
+  const [customers, setCustomers] = useState<ApiCustomer[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [rowsPerPage, setRowsPerPage] = useState<number>(10);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
   const router = useRouter();
 
-  // Type the allCustomers array
-  const allCustomers: Customer[] = [
-    {
-      no: 1,
-      cif: "124900000",
-      noRek: "0009999900",
-      produk: "Mitraguna",
-      status: "New",
-      nama: "Sandy",
-    },
-    {
-      no: 2,
-      cif: "567800000",
-      noRek: "0011223344",
-      produk: "Fleksi",
-      status: "Processing",
-      nama: "Sandy",
-    },
-    {
-      no: 3,
-      cif: "135700000",
-      noRek: "0055667788",
-      produk: "KPR",
-      status: "Rejected",
-      nama: "Sandy",
-    },
-    {
-      no: 4,
-      cif: "246800000",
-      noRek: "0099887766",
-      produk: "KTA",
-      status: "Contacted",
-      nama: "Sandy",
-    },
-    {
-      no: 5,
-      cif: "987600000",
-      noRek: "0033221144",
-      produk: "Deposito",
-      status: "Closed",
-      nama: "Sandy",
-    },
-    {
-      no: 6,
-      cif: "432100000",
-      noRek: "0077889900",
-      produk: "Tabungan",
-      status: "New",
-      nama: "Budi",
-    },
-    {
-      no: 7,
-      cif: "876500000",
-      noRek: "0011223355",
-      produk: "Giro",
-      status: "Contacted",
-      nama: "Siti",
-    },
-    {
-      no: 8,
-      cif: "112233445",
-      noRek: "0066554433",
-      produk: "Mitraguna",
-      status: "Processing",
-      nama: "Andi",
-    },
-    {
-      no: 9,
-      cif: "998877665",
-      noRek: "0022446688",
-      produk: "KPR",
-      status: "New",
-      nama: "Rina",
-    },
-    {
-      no: 10,
-      cif: "554433221",
-      noRek: "0088664422",
-      produk: "KTA",
-      status: "Rejected",
-      nama: "Joko",
-    },
-    {
-      no: 11,
-      cif: "667788990",
-      noRek: "0044228866",
-      produk: "Deposito",
-      status: "Closed",
-      nama: "Dewi",
-    },
-    {
-      no: 12,
-      cif: "223344556",
-      noRek: "0099113355",
-      produk: "Tabungan",
-      status: "Contacted",
-      nama: "Eko",
-    },
-    {
-      no: 13,
-      cif: "778899001",
-      noRek: "0055779911",
-      produk: "Giro",
-      status: "New",
-      nama: "Lisa",
-    },
-    {
-      no: 14,
-      cif: "334455667",
-      noRek: "0011882244",
-      produk: "Fleksi",
-      status: "Processing",
-      nama: "Tono",
-    },
-    {
-      no: 15,
-      cif: "889900112",
-      noRek: "0077339955",
-      produk: "Mitraguna",
-      status: "Rejected",
-      nama: "Maya",
-    },
-  ];
+  useEffect(() => {
+    const fetchCustomers = async () => {
+      try {
+        setIsLoading(true);
+        const token = Cookies.get("token");
+        const baseUrl = `${API_BASE_URL}/marketing`;
+        const url =
+          tab === "pipeline"
+            ? `${baseUrl}/customers?status=${statusFilter}&page=${currentPage}&search=${searchQuery}&limit=${rowsPerPage}`
+            : `${baseUrl}/customers/me?status=${statusFilter}&page=${currentPage}&search=${searchQuery}&limit=${rowsPerPage}`; // Added search parameter here
 
-  // Type the filter function
-  const filteredCustomers = (activeTab: TabType): Customer[] => {
-    let filteredData = allCustomers.filter((customer) => {
-      const searchTerm = searchQuery.toLowerCase();
-      return Object.values(customer).some((value) =>
-        String(value).toLowerCase().includes(searchTerm)
-      );
-    });
+        const response = await fetch(url, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
 
-    if (activeTab === "pipeline") {
-      filteredData = filteredData.filter(
-        (customer) =>
-          customer.status === "New" || customer.status === "Rejected"
-      );
-    } else if (activeTab === "kelolaan") {
-      filteredData = filteredData.filter(
-        (customer) =>
-          customer.status === "Contacted" || customer.status === "Closed"
-      );
-    }
+        if (!response.ok) {
+          throw new Error("Failed to fetch customers");
+        }
 
-    if (statusFilter !== "") {
-      filteredData = filteredData.filter(
-        (customer) =>
-          customer.status.toLowerCase() === statusFilter.toLowerCase()
-      );
-    }
+        const data: ApiResponse = await response.json();
+        if (data.success) {
+          setCustomers(data.data);
+          setTotalPages(data.meta.total_pages);
+          setTotalItems(data.meta.total_items);
+        } else {
+          throw new Error(data.message);
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "An error occurred");
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-    return filteredData.slice(0, rowsPerPage);
+    fetchCustomers();
+  }, [tab, currentPage, searchQuery, statusFilter, rowsPerPage]);
+
+  const handleRowsPerPageChange = (
+    event: React.ChangeEvent<HTMLSelectElement>
+  ): void => {
+    setRowsPerPage(parseInt(event.target.value, 10));
   };
 
-  // Type the event handlers
-  const handleRowsPerPageChange = (event: React.ChangeEvent<HTMLSelectElement>): void => {
-    setRowsPerPage(parseInt(event.target.value, 10) as RowsPerPageOption);
-  };
-
-  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>): void => {
+  const handleSearchChange = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ): void => {
     setSearchQuery(event.target.value);
   };
 
-  const handleStatusFilterChange = (event: React.ChangeEvent<HTMLSelectElement>): void => {
+  const handleStatusFilterChange = (
+    event: React.ChangeEvent<HTMLSelectElement>
+  ): void => {
     setStatusFilter(event.target.value);
   };
 
   const handleTabChange = (newTab: TabType): void => {
-    setActiveTab(newTab);
+    setCurrentPage(1);
+    onTabChange(newTab); // Call the parent's tab change handler
+  };
+
+  const handlePreviousPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage((prev) => prev - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage((prev) => prev + 1);
+    }
   };
 
   // Helper function to get status style
   const getStatusStyle = (status: CustomerStatus): string => {
     const styles = {
-      New: "bg-yellow-100 text-yellow-600 border-yellow-600",
-      Processing: "bg-blue-100 text-blue-600 border-blue-600",
-      Rejected: "bg-red-100 text-red-600 border-red-600",
-      Contacted: "bg-purple-100 text-purple-600 border-purple-600",
-      Closed: "bg-green-100 text-green-600 border-green-600"
+      new: "bg-yellow-100 text-yellow-600 border-yellow-600",
+      processing: "bg-blue-100 text-blue-600 border-blue-600",
+      rejected: "bg-red-100 text-red-600 border-red-600",
+      contacted: "bg-purple-100 text-purple-600 border-purple-600",
+      closed: "bg-green-100 text-green-600 border-green-600",
     };
     return styles[status] || "bg-gray-100 text-gray-600 border-gray-400";
   };
@@ -221,7 +144,7 @@ const CustomerTable: React.FC<CustomerTableProps> = ({ tab, event }) => {
       <div className="flex justify-center border-b mb-4">
         <button
           className={`pb-2 px-4 text-xl font-medium ${
-            activeTab === "pipeline"
+            tab === "pipeline"
               ? "text-teal-500 border-b-2 border-teal-500"
               : "text-gray-400"
           }`}
@@ -231,7 +154,7 @@ const CustomerTable: React.FC<CustomerTableProps> = ({ tab, event }) => {
         </button>
         <button
           className={`pb-2 px-4 text-xl font-medium ${
-            activeTab === "kelolaan"
+            tab === "kelolaan"
               ? "text-teal-500 border-b-2 border-teal-500"
               : "text-gray-400"
           }`}
@@ -241,111 +164,152 @@ const CustomerTable: React.FC<CustomerTableProps> = ({ tab, event }) => {
         </button>
       </div>
 
-      {/* Search and Filter - FIXED LAYOUT */}
-      <div className="flex flex-wrap gap-4 mb-6">
-        {/* Search input with fixed width */}
+      {/* Improved Search and Filter Section */}
+      <div className="flex justify-between items-center mb-6">
+        {/* Search Bar - Left Side */}
         <div className="relative w-64 md:w-80">
           <input
             type="text"
-            placeholder="Type keyword Search"
-            className="w-full py-2 px-10 border border-gray-300 rounded-lg"
+            placeholder="Cari nama nasabah..."
+            className="w-full py-2 px-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
             value={searchQuery}
             onChange={handleSearchChange}
           />
           <span className="absolute left-3 top-2.5">🔍</span>
         </div>
-        <div className="flex-1"></div> {/* Spacer */}
-        {/* Status filter with fixed width */}
-        <div className="w-40">
-          <select
-            className="w-full py-2 px-3 border border-gray-300 rounded-lg appearance-none"
-            value={statusFilter}
-            onChange={handleStatusFilterChange}
-          >
-            <option value="">Semua</option>
-            {activeTab === "pipeline" && (
-              <>
-                <option value="new">New</option>
-                <option value="rejected">Rejected</option>
-              </>
-            )}
-            {activeTab === "kelolaan" && (
-              <>
-                <option value="contacted">Contacted</option>
-                <option value="closed">Closed</option>
-              </>
-            )}
-          </select>
-        </div>
-        {/* Rows per page with fixed width */}
-        <div className="flex items-center w-48">
-          <label
-            htmlFor="rowsPerPage"
-            className="mr-2 text-sm text-gray-700 whitespace-nowrap"
-          >
-            Tampilkan:
-          </label>
-          <select
-            id="rowsPerPage"
-            className="py-2 px-3 border border-gray-300 rounded-lg appearance-none text-sm"
-            value={rowsPerPage}
-            onChange={handleRowsPerPageChange}
-          >
-            <option value={10}>10</option>
-            <option value={50}>50</option>
-            <option value={100}>100</option>
-            <option value={allCustomers.length}>Semua</option>
-          </select>
+
+        {/* Filters - Right Side */}
+        <div className="flex gap-4">
+          <div className="w-48">
+            <select
+              className="w-full py-2 px-3 border border-gray-300 rounded-lg appearance-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+              value={statusFilter}
+              onChange={handleStatusFilterChange}
+            >
+              <option value="">Semua Status</option>
+              {tab === "pipeline" ? (
+                <>
+                  <option value="new">New</option>
+                  <option value="rejected">Rejected</option>
+                </>
+              ) : (
+                <>
+                  <option value="contacted">Contacted</option>
+                  <option value="closed">Closed</option>
+                </>
+              )}
+            </select>
+          </div>
+
+          <div className="w-48">
+            <select
+              className="w-full py-2 px-3 border border-gray-300 rounded-lg appearance-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+              value={rowsPerPage}
+              onChange={handleRowsPerPageChange}
+            >
+              <option value={10}>10 per halaman</option>
+              <option value={25}>25 per halaman</option>
+              <option value={50}>50 per halaman</option>
+            </select>
+          </div>
         </div>
       </div>
 
       {/* Table */}
-      <div className="border border-teal-500 rounded-lg overflow-x-auto">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b">
-              <th className="py-4 px-6 text-left">No</th>
-              <th className="py-4 px-6 text-left">CIF</th>
-              <th className="py-4 px-6 text-left">Nama</th>
-              <th className="py-4 px-6 text-left">No. Rek</th>
-              <th className="py-4 px-6 text-left">Produk Eksisting</th>
-              <th className="py-4 px-6 text-left">Status</th>
-              <th className="py-4 px-6 text-left">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredCustomers(activeTab).map((customer) => (
-              <tr key={customer.no} className="border-b">
-                <td className="py-4 px-6">{customer.no}</td>
-                <td className="py-4 px-6">{customer.cif}</td>
-                <td className="py-4 px-6">{customer.nama}</td>
-                <td className="py-4 px-6">{customer.noRek}</td>
-                <td className="py-4 px-6">{customer.produk}</td>
-                <td className="py-4 px-6">
-                  <div className="inline-flex items-center">
-                    <span
-                      className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-sm font-medium border min-w-[90px] text-center ${getStatusStyle(
-                        customer.status
-                      )}`}
-                    >
-                      {customer.status}
-                    </span>
-                  </div>
-                </td>
-                <td className="py-4 px-6">
-                  <button
-                    className="px-4 py-1 border border-teal-500 text-teal-500 rounded-md hover:bg-teal-50"
-                    onClick={() =>
-                      router.push("/dashboard/marketing/customer/1")
-                    }
-                  >
-                    Details
-                  </button>
-                </td>
+      {isLoading ? (
+        <div className="text-center py-4">Loading...</div>
+      ) : error ? (
+        <div className="text-red-500 text-center py-4">{error}</div>
+      ) : (
+        <div className="border border-teal-500 rounded-lg overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b">
+                <th className="py-4 px-6 text-left">No</th>
+                <th className="py-4 px-6 text-left">CIF</th>
+                <th className="py-4 px-6 text-left">Nama</th>
+                <th className="py-4 px-6 text-left">No. Rek</th>
+                <th className="py-4 px-6 text-left">Produk Eksisting</th>
+                <th className="py-4 px-6 text-left">Status</th>
+                <th className="py-4 px-6 text-left">Action</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {customers.map((customer, index) => (
+                <tr key={customer.id} className="border-b">
+                  <td className="py-4 px-6">{index + 1}</td>
+                  <td className="py-4 px-6">{customer.cif}</td>
+                  <td className="py-4 px-6">{customer.nama}</td>
+                  <td className="py-4 px-6">{customer.nomor_rekening}</td>
+                  <td className="py-4 px-6">
+                    {customer.produk_eksisting
+                      ? customer.produk_eksisting.join(", ")
+                      : "-"}
+                  </td>
+                  <td className="py-4 px-6">
+                    <div className="inline-flex items-center">
+                      <span
+                        className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-sm font-medium border min-w-[90px] text-center ${getStatusStyle(
+                          customer.status as CustomerStatus
+                        )}`}
+                      >
+                        {customer.status}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="py-4 px-6">
+                    <button
+                      className="px-4 py-1 border border-teal-500 text-teal-500 rounded-md hover:bg-teal-50"
+                      onClick={() =>
+                        router.push(`/dashboard/marketing/customer/${customer.cif}`)
+                      }
+                    >
+                      Details
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Pagination Section */}
+      <div className="flex items-center justify-between mt-4 px-4">
+        <div className="text-sm text-gray-700">
+          Showing {customers.length ? (currentPage - 1) * rowsPerPage + 1 : 0} to{" "}
+          {Math.min(currentPage * rowsPerPage, totalItems)} of {totalItems} entries
+        </div>
+
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={handlePreviousPage}
+            disabled={currentPage === 1}
+            className={`px-4 py-2 border rounded-md ${
+              currentPage === 1
+                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                : "bg-white text-teal-600 hover:bg-teal-50"
+            }`}
+          >
+            Previous
+          </button>
+
+          <span className="px-4 py-2 border rounded-md bg-teal-50">
+            Page {currentPage} of {totalPages}
+          </span>
+
+          <button
+            onClick={handleNextPage}
+            disabled={currentPage === totalPages}
+            className={`px-4 py-2 border rounded-md ${
+              currentPage === totalPages
+                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                : "bg-white text-teal-600 hover:bg-teal-50"
+            }`}
+          >
+            Next
+          </button>
+        </div>
       </div>
     </div>
   );

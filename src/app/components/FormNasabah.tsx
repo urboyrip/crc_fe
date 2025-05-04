@@ -10,12 +10,12 @@ interface DetailNasabahProps {
 interface NasabahData {
   cif: string;
   fullName: string;
-  phoneCode: string;
   phoneNumber: string;
   accountNumber: string;
   email: string;
   address: string;
   occupation: string;
+  companyName: string;
   age: number;
   income: number;
   payroll: boolean;
@@ -24,7 +24,16 @@ interface NasabahData {
   categorySegment: string;
   existingProduct: string[];
   transactionActivity: string;
+  closedAmount?: number;
+  mcCreatedAt?: string;
 }
+
+const InfoField: FC<{ label: string; value: string | number }> = ({ label, value }) => (
+  <div className="space-y-2">
+    <label className="block text-sm font-medium text-gray-700">{label}</label>
+    <div className="px-4 py-2 bg-gray-100 rounded-lg">{value}</div>
+  </div>
+);
 
 const DetailNasabah: FC<DetailNasabahProps> = ({ data, isLoading = false }) => {
   const formatCurrency = (value: number) => {
@@ -45,96 +54,50 @@ const DetailNasabah: FC<DetailNasabahProps> = ({ data, isLoading = false }) => {
           <p className="text-gray-500">Memuat data nasabah...</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-          {/* Left Column */}
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">CIF</label>
-              <div className="px-4 py-2 bg-gray-100 rounded-lg">{data.cif}</div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">Nama Lengkap</label>
-              <div className="px-4 py-2 bg-gray-100 rounded-lg">{data.fullName}</div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">No Telephone</label>
-              <div className="px-4 py-2 bg-gray-100 rounded-lg">
-                {data.phoneCode} {data.phoneNumber}
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">Nomor Rekening</label>
-              <div className="px-4 py-2 bg-gray-100 rounded-lg">{data.accountNumber}</div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">Email</label>
-              <div className="px-4 py-2 bg-gray-100 rounded-lg">{data.email}</div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">Alamat</label>
-              <div className="px-4 py-2 bg-gray-100 rounded-lg">{data.address}</div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">Jenis Kelamin</label>
-              <div className="px-4 py-2 bg-gray-100 rounded-lg">
-                {data.gender === 'male' ? 'Laki-laki' : 'Perempuan'}
-              </div>
-            </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <InfoField label="CIF" value={data.cif} />
+            <InfoField label="Nama Lengkap" value={data.fullName} />
+            <InfoField label="Nomor HP" value={data.phoneNumber} />
+            <InfoField label="Nomor Rekening" value={data.accountNumber} />
+            <InfoField label="Email" value={data.email || "-"} />
+            <InfoField label="Alamat" value={data.address} />
+            <InfoField label="Pekerjaan" value={data.occupation} />
+            <InfoField label="Perusahaan" value={data.companyName} />
           </div>
-
-          {/* Right Column */}
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">Kategori Segmen</label>
-              <div className="px-4 py-2 bg-gray-100 rounded-lg">{data.categorySegment}</div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">Pekerjaan</label>
-              <div className="px-4 py-2 bg-gray-100 rounded-lg">{data.occupation}</div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">Umur</label>
-              <div className="px-4 py-2 bg-gray-100 rounded-lg">{data.age}</div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">Penghasilan</label>
-              <div className="px-4 py-2 bg-gray-100 rounded-lg">{formatCurrency(data.income)}</div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">Payroll</label>
-              <div className="px-4 py-2 bg-gray-100 rounded-lg">
-                {data.payroll ? 'Ya' : 'Tidak'}
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">Status Pernikahan</label>
-              <div className="px-4 py-2 bg-gray-100 rounded-lg">
-                {data.maritalStatus ? 'Menikah' : 'Belum Menikah'}
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">Aktivitas Transaksi</label>
-              <div className="px-4 py-2 bg-gray-100 rounded-lg">{data.transactionActivity}</div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">Produk Eksisting</label>
-              <div className="px-4 py-2 bg-gray-100 rounded-lg">
-                {data.existingProduct.join(', ')}
-              </div>
-            </div>
+          <div>
+            <InfoField label="Umur" value={`${data.age} tahun`} />
+            <InfoField label="Penghasilan" value={formatCurrency(data.income)} />
+            <InfoField label="Payroll" value={data.payroll ? "Ya" : "Tidak"} />
+            <InfoField 
+              label="Gender" 
+              value={data.gender === "MALE" ? "Laki-laki" : "Perempuan"} 
+            />
+            <InfoField 
+              label="Status Pernikahan" 
+              value={data.maritalStatus ? "Menikah" : "Belum Menikah"} 
+            />
+            <InfoField label="Segmen" value={data.categorySegment} />
+            <InfoField 
+              label="Produk Eksisting" 
+              value={data.existingProduct.length > 0 ? data.existingProduct.join(", ") : "-"} 
+            />
+            <InfoField 
+              label="Aktivitas Transaksi" 
+              value={data.transactionActivity} 
+            />
+            {data.closedAmount && (
+              <InfoField 
+                label="Closed Amount" 
+                value={formatCurrency(data.closedAmount)} 
+              />
+            )}
+            {data.mcCreatedAt && (
+              <InfoField 
+                label="Tanggal Assignment" 
+                value={new Date(data.mcCreatedAt).toLocaleDateString('id-ID')} 
+              />
+            )}
           </div>
         </div>
       )}
